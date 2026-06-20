@@ -1,6 +1,6 @@
 # chattea-workspace
 
-Workspace repo for Chattea. Child repos stay independent.
+Workspace repo for Chattea.
 
 ## Repos
 - `chattea-fe`: Expo React Native app.
@@ -9,17 +9,14 @@ Workspace repo for Chattea. Child repos stay independent.
 
 ## Clone
 ```sh
-git clone https://github.com/ChatTeaDot/chattea-workspace.git
-cd chattea-workspace
-./scripts/clone-repos.sh
+git clone --recurse-submodules https://github.com/ChatTeaDot/chattea-workspace.git
 ```
 
-## Pull all repos
+## Update submodules
 ```sh
-./scripts/pull-all.sh
+git submodule update --init --recursive
 ```
 
 ## Notes
 - Product code stays in each child repo.
-- Child repos are not submodules.
 - Cross-repo coordination belongs here only when it affects more than one repo.
