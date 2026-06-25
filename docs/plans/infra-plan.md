@@ -1,4 +1,4 @@
-# Chattea Terraform AWS Plan
+# Chattea Infra Plan
 
 ## Summary
 - AWS 인프라, secrets, observability 연동, 배포 기반.

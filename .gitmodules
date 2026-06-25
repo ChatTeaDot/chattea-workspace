@@ -4,6 +4,6 @@
 [submodule "chattea-fe"]
 	path = chattea-fe
 	url = https://github.com/ChatTeaDot/chattea-fe.git
-[submodule "chattea-terraform-aws"]
-	path = chattea-terraform-aws
-	url = https://github.com/ChatTeaDot/chattea-terraform-aws.git
+[submodule "chattea-infra"]
+	path = chattea-infra
+	url = https://github.com/ChatTeaDot/chattea-infra.git

@@ -5,7 +5,7 @@ ChatTea workspace repository.
 ## Repos
 - `chattea-fe`
 - `chattea-be`
-- `chattea-terraform-aws`
+- `chattea-infra`
 
 ## Clone
 ```sh
