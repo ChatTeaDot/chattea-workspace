@@ -30,6 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}
           submodules: recursive
       - uses: pnpm/action-setup@v4
         with:
@@ -47,6 +48,7 @@ jobs:
       - run: pnpm run build
       - name: Run auth smoke against local backend
         run: |
+          pnpm run migrate
           pnpm run start > /tmp/chattea-be-server.log 2>&1 &
           SERVER_PID=$!
           for attempt in $(seq 1 30); do
@@ -80,6 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}
           submodules: recursive
       - uses: pnpm/action-setup@v4
         with:
