@@ -1,22 +1,13 @@
 # chattea-workspace
 
-Workspace repo for Chattea.
+ChatTea workspace repository.
 
 ## Repos
-- `chattea-fe`: Expo React Native app.
-- `chattea-be`: GraphQL API, auth, realtime, SMS, upload.
-- `chattea-terraform-aws`: AWS infrastructure.
+- `chattea-fe`
+- `chattea-be`
+- `chattea-terraform-aws`
 
 ## Clone
 ```sh
 git clone --recurse-submodules https://github.com/ChatTeaDot/chattea-workspace.git
 ```
-
-## Update submodules
-```sh
-git submodule update --init --recursive
-```
-
-## Notes
-- Product code stays in each child repo.
-- Cross-repo coordination belongs here only when it affects more than one repo.
