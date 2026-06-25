@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "release target"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - backend
+          - mobile-build
+          - mobile-update
+          - mobile-submit
+
+jobs:
+  backend-deploy:
+    if: inputs.target == 'all' || inputs.target == 'backend'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: chattea
+          POSTGRES_USER: chattea
+          POSTGRES_PASSWORD: chattea-dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chattea -d chattea"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: chattea-be
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-be/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
+      - run: pnpm run typecheck
+      - run: pnpm run build
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.HOSTINGER_APP_DIR }}"
+            git pull --ff-only
+            docker compose up -d --build chattea-be
+            curl -fsS http://127.0.0.1:4000/healthz
+
+  mobile-build:
+    if: inputs.target == 'all' || inputs.target == 'mobile-build'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chattea-fe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-fe/pnpm-lock.yaml
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: eas build --platform all --profile production --non-interactive --no-wait
+
+  mobile-update:
+    if: inputs.target == 'all' || inputs.target == 'mobile-update'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chattea-fe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-fe/pnpm-lock.yaml
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: eas update --branch production --message "${{ github.sha }}" --non-interactive
+
+  mobile-submit:
+    if: inputs.target == 'mobile-submit'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chattea-fe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas submit --platform all --profile production --latest --non-interactive
