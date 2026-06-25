@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: chattea
+          POSTGRES_USER: chattea
+          POSTGRES_PASSWORD: chattea-dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chattea -d chattea"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: chattea-be
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-be/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+        env:
+          TEST_DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
+      - run: pnpm run typecheck
+      - run: pnpm run build
+      - name: Run auth smoke against local backend
+        run: |
+          pnpm run start > /tmp/chattea-be-server.log 2>&1 &
+          SERVER_PID=$!
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/healthz > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          if ! curl -fsS http://127.0.0.1:4000/healthz > /dev/null; then
+            cat /tmp/chattea-be-server.log
+            kill "$SERVER_PID" || true
+            exit 1
+          fi
+          node ../scripts/e2e-auth-smoke.mjs
+          STATUS=$?
+          kill "$SERVER_PID" >/dev/null 2>&1 || true
+          exit "$STATUS"
+        env:
+          DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: chattea
+          POSTGRES_PASSWORD: chattea-dev
+          POSTGRES_DB: chattea
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chattea-fe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-fe/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
