@@ -4,6 +4,3 @@
 [submodule "chattea-fe"]
 	path = chattea-fe
 	url = https://github.com/ChatTeaDot/chattea-fe.git
-[submodule "chattea-infra"]
-	path = chattea-infra
-	url = https://github.com/ChatTeaDot/chattea-infra.git
