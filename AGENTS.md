@@ -4,3 +4,4 @@
 @.rules/skills.md
 @.rules/git.md
 @.rules/frontend.md
+@.rules/backend.md
