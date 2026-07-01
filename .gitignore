@@ -1,9 +1,5 @@
-node_modules
-/chattea-be/node_modules
-/chattea-fe/node_modules
 .DS_Store
 .env
 .env.*
 !.env.example
-docs
 .workflow

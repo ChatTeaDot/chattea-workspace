@@ -1,4 +1,4 @@
-# skills.md
+# Skills Rules
 
 ## Required Skill Files
 @vercel:react-best-practices

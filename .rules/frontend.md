@@ -16,4 +16,7 @@ src/assets/           # images, fonts
 - Shared UI stays in `src/shared/components/`.
 - File name: `kebab-case`.
 - Platform file: `file-name.ios.tsx`, `file-name.android.tsx`.
-- Avoid `index.ts` re-exports: `export * from "file";`.
+- Use `@/` imports only across sibling folders: `@/<sibling>/<path>`.
+- Use arrow function expressions for all functions, including hooks and components: `const func = () => {}`.
+- Re-export modules through `index.ts`.
+- Use `react-native-unistyles` for styling only.
