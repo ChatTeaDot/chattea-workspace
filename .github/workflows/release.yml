@@ -43,7 +43,7 @@ jobs:
           submodules: recursive
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.0.4
+          version: 10.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -51,8 +51,6 @@ jobs:
           cache-dependency-path: chattea-be/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
-        env:
-          TEST_DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
       - run: pnpm run typecheck
       - run: pnpm run build
       - name: Deploy to Hostinger VPS
