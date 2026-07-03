@@ -34,7 +34,7 @@ jobs:
           submodules: recursive
       - uses: pnpm/action-setup@v4
         with:
-          version: 11.0.4
+          version: 10.13.1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -42,37 +42,26 @@ jobs:
           cache-dependency-path: chattea-be/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
-        env:
-          TEST_DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
       - run: pnpm run typecheck
       - run: pnpm run build
-      - name: Run auth smoke against local backend
+      - name: Run e2e tests
         run: |
           pnpm run migrate
-          pnpm run start > /tmp/chattea-be-server.log 2>&1 &
-          SERVER_PID=$!
-          for attempt in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4000/healthz > /dev/null; then
-              break
-            fi
-            sleep 1
-          done
-          if ! curl -fsS http://127.0.0.1:4000/healthz > /dev/null; then
-            cat /tmp/chattea-be-server.log
-            kill "$SERVER_PID" || true
-            exit 1
-          fi
-          node ../scripts/e2e-auth-smoke.mjs
-          STATUS=$?
-          kill "$SERVER_PID" >/dev/null 2>&1 || true
-          exit "$STATUS"
+          pnpm run test:e2e
         env:
-          DATABASE_URL: postgres://chattea:chattea-dev@localhost:5432/chattea
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
-          POSTGRES_USER: chattea
+          POSTGRES_USERNAME: chattea
           POSTGRES_PASSWORD: chattea-dev
-          POSTGRES_DB: chattea
+          POSTGRES_DATABASE: chattea
+          JWT_ACCESS_TOKEN_SECRET: test-access-secret
+          JWT_REFRESH_TOKEN_SECRET: test-refresh-secret
+          JWT_ACCESS_TOKEN_EXP: 15m
+          JWT_REFRESH_TOKEN_EXP: 30d
+          SIGNUP_TOKEN_SECRET: test-signup-secret
+          KAKAO_SIGNUP_TOKEN_SECRET: test-kakao-signup-secret
+          PHONE_CODE_PEPPER: test-pepper
+          CLIENT_URL: http://localhost:8081
 
   frontend:
     runs-on: ubuntu-latest
