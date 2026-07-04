@@ -9,10 +9,10 @@ ChatTea workspace repository.
 ## Local stack
 
 ```sh
-cp .env.example .env
+cd chattea-be
+cp ../.env.example .env
 BUILDX_CONFIG=/tmp/chattea-buildx docker compose up -d postgres chattea-be
 curl http://127.0.0.1:4000/healthz
-cd chattea-be
 pnpm run smoke:auth
 ```
 
