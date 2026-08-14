@@ -474,4 +474,3 @@ The following components are part of this design system:
 - Badge
 - Tabs
 - Dialog
-
