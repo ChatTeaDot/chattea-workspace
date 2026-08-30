@@ -14,13 +14,13 @@ fail() {
 require_pattern() {
   local pattern=$1
   local file=$2
-  rg -F -- "$pattern" "$file" >/dev/null || fail "missing workflow contract: $pattern"
+  grep -F -- "$pattern" "$file" >/dev/null || fail "missing workflow contract: $pattern"
 }
 
 reject_pattern() {
   local pattern=$1
   local file=$2
-  if rg -F -- "$pattern" "$file" >/dev/null; then fail "forbidden workflow contract: $pattern"; fi
+  if grep -F -- "$pattern" "$file" >/dev/null; then fail "forbidden workflow contract: $pattern"; fi
 }
 
 require_count() {
@@ -28,7 +28,7 @@ require_count() {
   local pattern=$2
   shift 2
   local actual
-  actual=$(rg -F --count-matches -- "$pattern" "$@" | awk -F: '{ total += $NF } END { print total + 0 }')
+  actual=$({ grep -F -o -- "$pattern" "$@" || true; } | wc -l | tr -d ' ')
   [[ "$actual" == "$expected" ]] || fail "workflow contract count mismatch for $pattern: expected $expected, got $actual"
 }
 
@@ -39,7 +39,7 @@ require_job_pattern() {
     $0 == "  " job ":" { active = 1 }
     active && $0 ~ /^  [a-zA-Z0-9_-]+:$/ && $0 != "  " job ":" { exit }
     active { print }
-  ' "$release_file" | rg -F -- "$pattern" >/dev/null || fail "missing $job workflow contract: $pattern"
+  ' "$release_file" | grep -F -- "$pattern" >/dev/null || fail "missing $job workflow contract: $pattern"
 }
 
 docker run --rm -v "$workspace_dir:/workspace" -w /workspace "$actionlint_image"
@@ -78,14 +78,14 @@ require_job_pattern mobile-build 'timeout-minutes: 120'
 require_job_pattern mobile-build 'eas build --platform all --profile production --non-interactive'
 reject_pattern 'eas update ' "$release_file"
 reject_pattern 'eas submit ' "$release_file"
-if rg -F -- '--no-wait' "$release_file" >/dev/null; then
+if grep -F -- '--no-wait' "$release_file" >/dev/null; then
   fail "mobile production build does not wait for the EAS result"
 fi
 require_count 1 'uses: expo/expo-github-action@' "$release_file"
 require_count 1 'eas-version: ' "$release_file"
 require_count 1 'uses: expo/expo-github-action@eab7a230208c952974db8c3245cfd78402c7b385' "$release_file"
 require_count 1 'eas-version: 22.4.0' "$release_file"
-if rg -F -- 'eas-version: latest' "$release_file" >/dev/null; then
+if grep -F -- 'eas-version: latest' "$release_file" >/dev/null; then
   fail "mobile release workflow uses an unpinned EAS CLI version"
 fi
 require_count 5 'token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}' "$ci_file" "$release_file"
@@ -93,10 +93,10 @@ require_count 5 'persist-credentials: false' "$ci_file" "$release_file"
 require_count 5 'submodules: recursive' "$ci_file" "$release_file"
 require_count 2 'package_json_file: chattea-be/package.json' "$ci_file" "$release_file"
 require_count 2 'package_json_file: chattea-fe/package.json' "$ci_file" "$release_file"
-if rg -F -- 'RELEASE_IMAGE_REF:' "$release_file" >/dev/null; then
+if grep -F -- 'RELEASE_IMAGE_REF:' "$release_file" >/dev/null; then
   fail "release workflow still passes a caller-controlled image reference"
 fi
-if rg -F -- 'docker build -t chattea-be:release-candidate' "$release_file" >/dev/null; then
+if grep -F -- 'docker build -t chattea-be:release-candidate' "$release_file" >/dev/null; then
   fail "release workflow still performs a second backend build"
 fi
 require_pattern 'expo config --type prebuild --json' "$ci_file"
