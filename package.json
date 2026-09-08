@@ -1,8 +1,0 @@
-{
-  "name": "chattea-workspace",
-  "private": true,
-  "packageManager": "pnpm@11.0.4",
-  "scripts": {
-    "dev": "(open -a Docker || true; until docker info >/dev/null 2>&1; do sleep 2; done; pnpm --dir chattea-be docker:up) & pnpm --dir chattea-fe ios; wait"
-  }
-}
