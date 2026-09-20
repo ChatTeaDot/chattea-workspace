@@ -22,8 +22,8 @@ git submodule update --init --recursive
 
 각 서브모듈의 개발/검증 절차는 해당 레포의 README를 따른다.
 
-- [chattea-fe/README.md](chattea-fe/README.md)
-- [chattea-be/README.md](chattea-be/README.md)
+- [chattea-fe/README.md](https://github.com/ChatTeaDot/chattea-fe/blob/develop/README.md)
+- [chattea-be/README.md](https://github.com/ChatTeaDot/chattea-be/blob/develop/README.md)
 
 ## 개발 규칙
 
