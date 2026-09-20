@@ -37,7 +37,7 @@
 
 ## 아키텍처 하이라이트
 
-- **디자인 시스템**: 당근 SEED를 참고한 3계층 토큰(`scale → semantic → component`)과 Unistyles 기반 라이트/다크 테마, 온디바이스 Storybook으로 컴포넌트 문서화
+- **디자인 시스템**: 3계층 토큰(`scale → semantic → component`)과 Unistyles 기반 라이트/다크 테마, 온디바이스 Storybook으로 컴포넌트 문서화
 - **WebView SSR**: 커뮤니티는 별도 Vite 앱을 Fastify가 `renderToPipeableStream`으로 스트리밍 SSR해 네이티브 탭 안에 WebView로 렌더
 - **보안**: 프로필 사진은 presigned PUT → 서버 재검증/재인코딩 4단계 파이프라인, RevenueCat 웹훅은 HMAC-SHA256 서명 검증 + 멱등 처리
 - **프로덕션 안전장치**: 백엔드는 필수 설정 없으면 기동을 거부하는 fail-closed 구성, non-transactional 마이그레이션 러너, advisory lock 기반 maintenance 워커
