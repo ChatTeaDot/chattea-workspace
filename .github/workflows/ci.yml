@@ -130,12 +130,13 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run format:check
       - name: Validate production Expo config and native generation
+        working-directory: chattea-fe/apps/chattea-mobile
         run: |
           pnpm exec expo config --type prebuild --json > "$RUNNER_TEMP/chattea-expo-config.json"
           pnpm exec expo prebuild --clean --no-install --platform all
           test -d ios
           test -x android/gradlew
-          git diff --exit-code -- package.json pnpm-lock.yaml app.config.js
+          git diff --exit-code -- package.json ../../pnpm-lock.yaml app.config.js
         env:
           CI: "1"
           EXPO_NO_GIT_STATUS: "1"
