@@ -144,6 +144,7 @@ jobs:
           EXPO_PUBLIC_GRAPHQL_URL: https://api.example.test/graphql
           EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY: ci-kakao-native-key
       - name: Export production native bundles
+        working-directory: chattea-fe/apps/chattea-mobile
         run: |
           pnpm exec expo export --platform ios --output-dir "$RUNNER_TEMP/chattea-fe-ios"
           pnpm exec expo export --platform android --output-dir "$RUNNER_TEMP/chattea-fe-android"
