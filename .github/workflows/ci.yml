@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  pull-request-policy:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate pull request metadata
+        env:
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          LC_ALL: C
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ "$BASE_BRANCH" != "develop" ]]; then
+            echo "Pull requests must target develop."
+            exit 1
+          fi
+          if [[ ! "$HEAD_BRANCH" =~ ^(feat|fix|refactor|chore|docs|test)/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "Invalid branch name: $HEAD_BRANCH"
+            exit 1
+          fi
+          if (( ${#PR_TITLE} >= 72 )) || [[ ! "$PR_TITLE" =~ ^(feat|fix|refactor|chore|docs|test)\([a-z0-9][a-z0-9-]*\):\ [a-z0-9][[:print:]]*$ ]]; then
+            echo "Invalid pull request title: $PR_TITLE"
+            exit 1
+          fi
+
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:18cfe3ef5e6815560c98237d6216d1e5119702fb0f3894c8785dd58b8bbe5d73
+        env:
+          POSTGRES_DB: chattea
+          POSTGRES_USER: chattea
+          POSTGRES_PASSWORD: chattea-dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U chattea -d chattea"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: chattea-be
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}
+          persist-credentials: false
+          submodules: recursive
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 10.13.1
+          package_json_file: chattea-be/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-be/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run audit:all
+      - run: pnpm run lint:check
+      - run: pnpm run format:check
+      - run: pnpm test
+      - run: pnpm run typecheck
+      - run: pnpm run build
+      - run: docker build -t chattea-be:ci .
+      - name: Validate backend container contract
+        working-directory: .
+        run: bash .github/scripts/container-contract.test.sh chattea-be:ci
+      - name: Run e2e tests
+        run: |
+          pnpm run migrate
+          pnpm run test:e2e
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USERNAME: chattea
+          POSTGRES_PASSWORD: chattea-dev
+          POSTGRES_DATABASE: chattea
+          JWT_ACCESS_TOKEN_SECRET: test-access-secret
+          JWT_REFRESH_TOKEN_SECRET: test-refresh-secret
+          JWT_ACCESS_TOKEN_EXP: 15m
+          JWT_REFRESH_TOKEN_EXP: 30d
+          SIGNUP_TOKEN_SECRET: test-signup-secret
+          KAKAO_SIGNUP_TOKEN_SECRET: test-kakao-signup-secret
+          PHONE_CODE_PEPPER: test-pepper
+          CLIENT_URL: http://localhost:8081
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: chattea-fe
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}
+          persist-credentials: false
+          submodules: recursive
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 11.0.4
+          package_json_file: chattea-fe/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: chattea-fe/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run audit:all
+      - run: pnpm run deps:check
+      - run: pnpm test
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - name: Validate production Expo config and native generation
+        working-directory: chattea-fe/apps/chattea-mobile
+        run: |
+          pnpm exec expo config --type prebuild --json > "$RUNNER_TEMP/chattea-expo-config.json"
+          pnpm exec expo prebuild --clean --no-install --platform all
+          test -d ios
+          test -x android/gradlew
+          git diff --exit-code -- package.json ../../pnpm-lock.yaml app.config.js
+        env:
+          CI: "1"
+          EXPO_NO_GIT_STATUS: "1"
+          NODE_ENV: production
+          EXPO_PUBLIC_GRAPHQL_URL: https://api.example.test/graphql
+          EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY: ci-kakao-native-key
+      - name: Export production native bundles
+        working-directory: chattea-fe/apps/chattea-mobile
+        run: |
+          pnpm exec expo export --platform ios --output-dir "$RUNNER_TEMP/chattea-fe-ios"
+          pnpm exec expo export --platform android --output-dir "$RUNNER_TEMP/chattea-fe-android"
+        env:
+          NODE_ENV: production
+          EXPO_PUBLIC_GRAPHQL_URL: https://api.example.test/graphql
+          EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY: ci-kakao-native-key
+
+  operations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.CHATTEA_SUBMODULE_TOKEN }}
+          persist-credentials: false
+          submodules: recursive
+      - name: Validate deployment shell
+        run: |
+          bash -n .github/scripts/deploy-backend.sh
+          bash -n .github/scripts/deploy-backend.test.sh
+          bash -n .github/scripts/smoke-backend-image.sh
+          bash .github/scripts/deploy-backend.test.sh
+          bash .github/scripts/smoke-backend-image.test.sh
+      - name: Validate production Compose
+        run: bash .github/scripts/production-compose.test.sh
+      - name: Validate workflow contracts
+        run: bash .github/scripts/workflow-contract.test.sh
