@@ -23,6 +23,9 @@ jobs:
           LC_ALL: C
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
+          if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" == "develop" ]]; then
+            exit 0
+          fi
           if [[ "$BASE_BRANCH" != "develop" ]]; then
             echo "Pull requests must target develop."
             exit 1
