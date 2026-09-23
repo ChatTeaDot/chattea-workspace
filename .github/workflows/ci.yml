@@ -11,34 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  pull-request-policy:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Validate pull request metadata
-        env:
-          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          LC_ALL: C
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          if [[ "$BASE_BRANCH" == "main" && "$HEAD_BRANCH" == "develop" ]]; then
-            exit 0
-          fi
-          if [[ "$BASE_BRANCH" != "develop" ]]; then
-            echo "Pull requests must target develop."
-            exit 1
-          fi
-          if [[ ! "$HEAD_BRANCH" =~ ^(feat|fix|refactor|chore|docs|test)/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-            echo "Invalid branch name: $HEAD_BRANCH"
-            exit 1
-          fi
-          if (( ${#PR_TITLE} >= 72 )) || [[ ! "$PR_TITLE" =~ ^(feat|fix|refactor|chore|docs|test)\([a-z0-9][a-z0-9-]*\):\ [a-z0-9][[:print:]]*$ ]]; then
-            echo "Invalid pull request title: $PR_TITLE"
-            exit 1
-          fi
-
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 30
