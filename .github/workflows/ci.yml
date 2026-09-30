@@ -97,12 +97,16 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: chattea-fe/pnpm-lock.yaml
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: chattea-fe/.turbo
+          key: ${{ runner.os }}-turbo-${{ hashFiles('chattea-fe/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
       - run: pnpm install --frozen-lockfile
       - run: pnpm run audit:all
       - run: pnpm run deps:check
-      - run: pnpm test
-      - run: pnpm run typecheck
-      - run: pnpm run lint
+      - run: pnpm exec turbo run lint typecheck test
       - run: pnpm run format:check
       - name: Validate production Expo config and native generation
         working-directory: chattea-fe/apps/chattea-mobile
